@@ -1,48 +1,56 @@
 """
-Database Schemas
+Database Schemas for PC Building Simulator
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Each Pydantic model corresponds to a MongoDB collection. The collection name is the lowercase of the class name.
 """
-
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List, Literal, Dict
 
-# Example schemas (replace with your own):
+ComponentType = Literal[
+    "cpu",
+    "motherboard",
+    "ram",
+    "gpu",
+    "storage",
+    "psu",
+    "case"
+]
 
-class User(BaseModel):
+class Component(BaseModel):
     """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
+    PC components catalog
+    Collection name: "component"
     """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    type: ComponentType = Field(..., description="Component category")
+    name: str = Field(..., description="Display name")
+    brand: Optional[str] = Field(None, description="Manufacturer brand")
+    price: float = Field(..., ge=0, description="Price in USD")
 
-class Product(BaseModel):
+    # Compatibility fields (optional, used where relevant)
+    socket: Optional[str] = Field(None, description="CPU/Motherboard socket type")
+    chipset: Optional[str] = Field(None, description="Motherboard chipset")
+    ram_type: Optional[str] = Field(None, description="Supported RAM type e.g., DDR4, DDR5")
+    ram_speed: Optional[int] = Field(None, description="Max supported RAM speed in MHz")
+    tdp: Optional[int] = Field(None, description="Thermal Design Power in Watts (CPU/GPU)")
+    power_draw: Optional[int] = Field(None, description="Typical power draw in Watts")
+    capacity_gb: Optional[int] = Field(None, description="Capacity in GB (RAM/Storage)")
+    form_factor: Optional[str] = Field(None, description="Motherboard/Case form factor e.g., ATX, mATX, ITX")
+    supported_form_factors: Optional[List[str]] = Field(None, description="Case supported motherboard sizes")
+
+class Build(BaseModel):
     """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
+    Saved builds with selected parts
+    Collection name: "build"
     """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+    name: str = Field(..., description="Build name")
+    cpu_id: Optional[str] = None
+    motherboard_id: Optional[str] = None
+    ram_id: Optional[str] = None
+    gpu_id: Optional[str] = None
+    storage_id: Optional[str] = None
+    psu_id: Optional[str] = None
+    case_id: Optional[str] = None
 
-# Add your own schemas here:
-# --------------------------------------------------
-
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+    total_price: Optional[float] = Field(0, description="Computed total price")
+    total_power: Optional[int] = Field(0, description="Estimated total power draw")
+    compatibility: Optional[Dict[str, str]] = Field(default_factory=dict, description="Compatibility check results")
